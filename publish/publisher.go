@@ -1,0 +1,5 @@
+package publisher
+
+func init() {
+
+}

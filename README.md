@@ -1,4 +1,4 @@
 # mqserver
 
-- Not tellin` ya
+- Not tellin' ya
 - Yo Yo

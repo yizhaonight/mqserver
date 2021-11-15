@@ -43,6 +43,7 @@ func Queue(methods, path string) (err error) {
 		logutil.Error(err)
 		return
 	}
+
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		logutil.Error(err)
@@ -75,7 +76,7 @@ func Queue(methods, path string) (err error) {
 		Method: methods,
 		Path:   path,
 	}
-	body := req.Compose()
+	body := req.String()
 
 	err = ch.Publish(
 		"mps_subscribe_demo", // exchange name
@@ -85,7 +86,7 @@ func Queue(methods, path string) (err error) {
 		amqp.Publishing{
 			DeliveryMode: amqp.Persistent,
 			ContentType:  "text/plain",
-			Body:         []byte(path),
+			Body:         []byte(body),
 		},
 	)
 
@@ -108,6 +109,6 @@ type RequestBody struct {
 	Path   string `json:"path"`
 }
 
-func (p *RequestBody) Compose() string {
+func (p *RequestBody) String() string {
 	return rest.JSONString(p)
 }

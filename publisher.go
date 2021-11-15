@@ -1,9 +1,8 @@
 package mqserver
 
 import (
-	"strings"
-
 	"github.com/streadway/amqp"
+	"kumact.com/gosdk/rest"
 	"kumact.com/gosdk/xutils/logutil"
 )
 
@@ -21,18 +20,16 @@ const (
  *
  * The <methods> parameter is something looks like "GET|POST|PUT|DELETE"
  */
-func Publish(methods, path string, ctl interface{}) (err error) {
-	methodList := strings.Split(methods, "|")
+func Publish(methods, path string) (err error) {
 	_, err = GetIP()
-	for _, method := range methodList {
-		if method == METHOD_GET {
-			return
-		} else {
-			err = Queue(path)
-			if err != nil {
-				return
-			}
-		}
+	if err != nil {
+		logutil.Error(err)
+		return
+	}
+	err = Queue(methods, path)
+	if err != nil {
+		logutil.Error(err)
+		return
 	}
 	return
 }
@@ -40,7 +37,7 @@ func Publish(methods, path string, ctl interface{}) (err error) {
 /*
  * Put request into a message queue
  */
-func Queue(path string) (err error) {
+func Queue(methods, path string) (err error) {
 	ip, err := GetIP() // Get the client ip to whom we publish our message
 	if err != nil {
 		logutil.Error(err)
@@ -74,6 +71,12 @@ func Queue(path string) (err error) {
 		return
 	}
 
+	req := RequestBody{
+		Method: methods,
+		Path:   path,
+	}
+	body := req.Compose()
+
 	err = ch.Publish(
 		"mps_subscribe_demo", // exchange name
 		ip,                   // routing key
@@ -81,12 +84,13 @@ func Queue(path string) (err error) {
 		false,                // immediate
 		amqp.Publishing{
 			DeliveryMode: amqp.Persistent,
-			ContentType:  "text/palin",
+			ContentType:  "text/plain",
 			Body:         []byte(path),
 		},
 	)
 
-	logutil.Debug("[x] Sent " + path + " to " + ip)
+	logutil.Debug("[x] Sent " + body + " to " + ip)
+	// logutil.Debug(body)
 	return
 }
 
@@ -97,4 +101,13 @@ func GetIP() (ip string, err error) {
 	// api to be completed
 	testIP := "1.1.1.1"
 	return testIP, err
+}
+
+type RequestBody struct {
+	Method string `json:"method"`
+	Path   string `json:"path"`
+}
+
+func (p *RequestBody) Compose() string {
+	return rest.JSONString(p)
 }
